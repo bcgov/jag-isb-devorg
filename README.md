@@ -14,6 +14,9 @@ Technology Stack
 | Presentation | Razor / JSON API responses |
 | Business Logic | C# - Dotnet Core 2.2 Web MVC |
 | Web Server | Kestrel |
+| Authentication, including OAUTH2 and SAML | ADFS 2016, On Premise |
+| Data | Dynamics 365 CE Version 9, On Premise |
+| File Storage | SharePoint 2016, On Premise |
 
 
 Developer Prerequisites
@@ -35,13 +38,18 @@ Configure the following secrets in your development or deployment environment:
 
 | Secret Name | Description |
 | ----------- | ------------|
-| DYNAMICS_ODATA_URI | Endpoint for the Dynamics REST interface.  May be an API gateway URL.  |
 | ADFS_OAUTH2_URI | ADFS OAUTH2 URI - usually /adfs/oauth2/token on your STS server. |
+| DYNAMICS_ODATA_URI | Endpoint for the Dynamics REST interface.  May be an API gateway URL.  |
 | DYNAMICS_APP_GROUP_RESOURCE | ADFS 2016 Application Group resource (URI) |
 | DYNAMICS_APP_GROUP_CLIENT_ID | ADFS 2016 Application Group Client ID |
 | DYNAMICS_APP_GROUP_SECRET | ADFS 2016 Application Group Secret |
 | DYNAMICS_USERNAME | Service account username.  Format is username@domain where domain is the Active Directory domain. |
 | DYNAMICS_PASSWORD | Service account password |
+| SHAREPOINT_ADFS_TOKEN_URI | URI that will be used to get a SAML token  |
+| SHAREPOINT_RELYING_PARTY_IDENTIFIER | URN for the relying party.  Matches that used for interactive login. |
+| SHAREPOINT_USERNAME | Username for the Service Account that will be used to access SharePoint.  In most cases this will be the same as that used for Dynamics. |
+| SHAREPOINT_PASSWORD | Password for the Service Account that will be used to access SharePoint. |
+
 
 Service Account Setup
 -----------------------
@@ -52,6 +60,14 @@ Service Account Setup
 - Assign correct permissions to the OpenShift access role.  For example, if your public facing code will create, edit and display Contacts, ensure that the role has sufficient permissions to create, read and edit a Contact and any related entities.
 - Add the Service Account to the Dynamics instance
 - Assign the OpenShift access role to the service account in Dynamics   
+
+
+Troubleshooting
+---------------
+
+Fiddler, Wireshark or similar traffic analysis tools are essential for troubleshooting authentication issues.
+- If you are getting a 401 or 403 error, check that all of your credentials are correct
+- The SharePoint relying party identifier can be obtained by running fiddler and doing an interactive login.  Examine the Fiddler logs to see what relying party was passed to the adfs server (typically the "sts").  The relying party will typcially start with urn: however it may also start with https://
 
  
 Contribution

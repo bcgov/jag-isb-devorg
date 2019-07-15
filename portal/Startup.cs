@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Gov.Jag.Interfaces.SharePoint;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+
 
 namespace portal
 {
@@ -31,8 +29,19 @@ namespace portal
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
+            // add SharePoint.
+
+            services.AddTransient(_ => new FileManager(Configuration));
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
+            // allow for large files to be uploaded
+            services.Configure<FormOptions>(options =>
+            {
+                options.MultipartBodyLengthLimit = 1073741824; // 1 GB
+            });
+
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -51,7 +60,7 @@ namespace portal
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-            app.UseCookiePolicy();
+            app.UseCookiePolicy();            
 
             app.UseMvc(routes =>
             {

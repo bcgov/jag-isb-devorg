@@ -3,10 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28922.388
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "portal", "portal.csproj", "{9FDFFF8A-9AE8-4505-BE58-04FA92D2A10B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dynamics", "..\interfaces\dynamics\dynamics.csproj", "{44903818-77ED-4AC2-9458-6A615710F0CD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dynamics", "..\..\interfaces\dynamics\dynamics\dynamics.csproj", "{44903818-77ED-4AC2-9458-6A615710F0CD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharePoint", "..\interfaces\sharepoint\SharePoint.csproj", "{02AB8637-9FD7-4EB9-B40D-E09FEE973EA2}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "portal", "portal.csproj", "{9FDFFF8A-9AE8-4505-BE58-04FA92D2A10B}"
+EndProject
+
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +24,10 @@ Global
 		{44903818-77ED-4AC2-9458-6A615710F0CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{44903818-77ED-4AC2-9458-6A615710F0CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{44903818-77ED-4AC2-9458-6A615710F0CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02AB8637-9FD7-4EB9-B40D-E09FEE973EA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02AB8637-9FD7-4EB9-B40D-E09FEE973EA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02AB8637-9FD7-4EB9-B40D-E09FEE973EA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02AB8637-9FD7-4EB9-B40D-E09FEE973EA2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
