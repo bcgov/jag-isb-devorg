@@ -9,11 +9,15 @@ using System.Threading.Tasks;
 
 namespace portal.Controllers
 {
+    /// <summary>
+    /// Basic example of a file upload controller.
+    /// 
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class FileController : Controller
     {
-        private const string DocumentListTitle = "Accounts";
+        private const string DocumentListTitle = "Account";
         private const string DocumentUrlTitle = "account";
 
 
@@ -55,6 +59,11 @@ namespace portal.Controllers
             string fileName = SanitizeFileName(file.FileName);            
 
             // upload to SharePoint
+
+            // in this example we are passing null for the folder name, which results in the file being stored directly in the document library.
+            // Normally in a situation where you have Dynamics document management setup, you would construct a folder name using the same pattern as 
+            // used in the configuration of Dynamics Document Management.
+
             await _sharePointFileManager.AddFile(DocumentListTitle, null, fileName, file.OpenReadStream(), file.ContentType);
             _logger.LogInformation("Successfully uploaded file {FileName} to SharePoint", fileName);
 
@@ -73,9 +82,6 @@ namespace portal.Controllers
             fileName = new Regex(@"[&:/\\|]").Replace(fileName, "-");
             return fileName;
         }
-
-
-
 
     }
 }

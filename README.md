@@ -50,6 +50,11 @@ Configure the following secrets in your development or deployment environment:
 | SHAREPOINT_USERNAME | Username for the Service Account that will be used to access SharePoint.  In most cases this will be the same as that used for Dynamics. |
 | SHAREPOINT_PASSWORD | Password for the Service Account that will be used to access SharePoint. |
 
+Sequence Diagrams
+------------------
+![](documentation/Authentication-Dynamics.png)
+
+![](documentation/Authentication-SharePoint.png)
 
 Service Account Setup
 -----------------------
@@ -67,7 +72,7 @@ Troubleshooting
 
 Fiddler, Wireshark or similar traffic analysis tools are essential for troubleshooting authentication issues.
 - If you are getting a 401 or 403 error, check that all of your credentials are correct
-- The SharePoint relying party identifier can be obtained by running fiddler and doing an interactive login.  Examine the Fiddler logs to see what relying party was passed to the adfs server (typically the "sts").  The relying party will typcially start with urn: however it may also start with https://
+- The SharePoint relying party identifier can be obtained by running Fiddler and doing an interactive login.  Examine the Fiddler logs to see what relying party was passed to the adfs server (typically the "sts").  The relying party will typcially start with urn: however it may also start with https://
 
  
 Contribution
