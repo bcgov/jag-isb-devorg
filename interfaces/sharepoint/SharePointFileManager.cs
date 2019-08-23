@@ -17,9 +17,11 @@ using System.Xml;
 
 namespace Gov.Jag.Interfaces.SharePoint
 {
-    public class FileManager
+    public class SharePointFileManager
     {
-        
+        public const string DefaultDocumentListTitle = "Account";
+        public const string DefaultDocumentUrlTitle = "account";
+
 
         private AuthenticationResult authenticationResult;
 
@@ -35,7 +37,7 @@ namespace Gov.Jag.Interfaces.SharePoint
         private CookieContainer _CookieContainer;
         private HttpClientHandler _HttpClientHandler;
 
-        public FileManager(IConfiguration Configuration)
+        public SharePointFileManager(IConfiguration Configuration)
         {
             // create the HttpClient that is used for our direct REST calls.
             _CookieContainer = new CookieContainer();
@@ -80,7 +82,7 @@ namespace Gov.Jag.Interfaces.SharePoint
             if (string.IsNullOrEmpty(sharePointSsgPassword))
             {
                 sharePointSsgPassword = ssgPassword;
-            }            
+            }
 
             OdataUri = sharePointOdataUri;
             ServerAppIdUri = sharePointServerAppIdUri;
@@ -92,24 +94,31 @@ namespace Gov.Jag.Interfaces.SharePoint
             {
                 WebName = "/" + WebName;
             }
-            
-            ApiEndpoint = sharePointOdataUri + "/_api/";
+
+
+            ApiEndpoint = sharePointOdataUri;
+            // ensure there is a trailing slash.
+            if (!ApiEndpoint.EndsWith("/"))
+            {
+                ApiEndpoint += "/";
+            }
+            ApiEndpoint += "_api/";
             FedAuthValue = null;
 
             // Scenario #1 - ADFS (2016) using FedAuth
             if (!string.IsNullOrEmpty(sharePointRelyingPartyIdentifier)
                 && !string.IsNullOrEmpty(sharePointUsername)
                 && !string.IsNullOrEmpty(sharePointPassword)
-                && !string.IsNullOrEmpty(sharePointStsTokenUri)                
+                && !string.IsNullOrEmpty(sharePointStsTokenUri)
                 )
             {
                 Authorization = null;
                 var samlST = Authentication.GetStsSamlToken(sharePointRelyingPartyIdentifier, sharePointUsername, sharePointPassword, sharePointStsTokenUri).GetAwaiter().GetResult();
                 //FedAuthValue = 
-                    Authentication.GetFedAuth(sharePointOdataUri, samlST, sharePointRelyingPartyIdentifier, _Client, _CookieContainer).GetAwaiter().GetResult();
+                Authentication.GetFedAuth(sharePointOdataUri, samlST, sharePointRelyingPartyIdentifier, _Client, _CookieContainer).GetAwaiter().GetResult();
             }
             // Scenario #2 - SharePoint Online (Cloud) using a Client Certificate
-            else if (!string.IsNullOrEmpty(sharePointAadTenantId) 
+            else if (!string.IsNullOrEmpty(sharePointAadTenantId)
                 && !string.IsNullOrEmpty(sharePointCertFileName)
                 && !string.IsNullOrEmpty(sharePointCertPassword)
                 && !string.IsNullOrEmpty(sharePointClientId)
@@ -135,7 +144,13 @@ namespace Gov.Jag.Interfaces.SharePoint
                 // authenticate using the SSG.                
                 string credentials = Convert.ToBase64String(ASCIIEncoding.ASCII.GetBytes(sharePointSsgUsername + ":" + sharePointSsgPassword));
                 Authorization = "Basic " + credentials;
-            }            
+            }
+
+            // Authorization header is used for Cloud or Basic API Gateway access
+            if (!string.IsNullOrEmpty(Authorization))
+            {
+                _Client.DefaultRequestHeaders.Add("Authorization", Authorization);
+            }
 
             // Add a Digest header.  Needed for certain API operations
             Digest = GetDigest(_Client).GetAwaiter().GetResult();
@@ -148,35 +163,27 @@ namespace Gov.Jag.Interfaces.SharePoint
             _Client.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
             _Client.DefaultRequestHeaders.Add("OData-Version", "4.0");
 
-            // Authorization header is used for Cloud or Basic API Gateway access
-            if (! string.IsNullOrEmpty (Authorization))
-            {
-                _Client.DefaultRequestHeaders.Add("Authorization", Authorization);
-                
-            }
-            
-            
         }
 
         public bool IsValid()
         {
             bool result = false;
-            if (! string.IsNullOrEmpty (OdataUri))
+            if (!string.IsNullOrEmpty(OdataUri))
             {
                 result = true;
             }
             return result;
         }
-        
+
         /// <summary>
         /// Escape the apostrophe character.  Since we use it to enclose the filename it must be escaped.
         /// </summary>
         /// <param name="filename"></param>
         /// <returns>Filename, with apropstophes escaped.</returns>
-        private string EscapeApostrophe (string filename)
+        private string EscapeApostrophe(string filename)
         {
             string result = null;
-            if (! string.IsNullOrEmpty(filename))
+            if (!string.IsNullOrEmpty(filename))
             {
                 result = filename.Replace("'", "''");
             }
@@ -193,7 +200,7 @@ namespace Gov.Jag.Interfaces.SharePoint
             public DateTime Timecreated { get; set; }
             public DateTime Timelastmodified { get; set; }
         }
-        
+
 
         public class FileDetailsList
         {
@@ -214,7 +221,7 @@ namespace Gov.Jag.Interfaces.SharePoint
         public async Task<List<FileDetailsList>> GetFileDetailsListInFolder(string listTitle, string folderName, string documentType)
         {
             // return early if SharePoint is disabled.
-            if (! IsValid())
+            if (!IsValid())
             {
                 return null;
             }
@@ -233,8 +240,15 @@ namespace Gov.Jag.Interfaces.SharePoint
             }
 
             string _responseContent = null;
-            HttpRequestMessage _httpRequest =
-                            new HttpRequestMessage(HttpMethod.Post, ApiEndpoint + "web/getFolderByServerRelativeUrl('" + EscapeApostrophe(serverRelativeUrl) + "')/files");
+            HttpRequestMessage _httpRequest = new HttpRequestMessage
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri(ApiEndpoint + "web/getFolderByServerRelativeUrl('" + EscapeApostrophe(serverRelativeUrl) + "')/files"),
+                Headers = {
+                    { "Accept", "application/json" }
+                }
+            };
+
             // make the request.
             var _httpResponse = await _Client.SendAsync(_httpRequest);
             HttpStatusCode _statusCode = _httpResponse.StatusCode;
@@ -270,7 +284,7 @@ namespace Gov.Jag.Interfaces.SharePoint
                 throw jre;
             }
             // get JSON response objects into a list
-            List<JToken> responseResults = responseObject["d"]["results"].Children().ToList();
+            List<JToken> responseResults = responseObject["value"].Children().ToList();
             // create file details list to add from response
             List<FileDetailsList> fileDetailsList = new List<FileDetailsList>();
             // create .NET objects
@@ -307,8 +321,7 @@ namespace Gov.Jag.Interfaces.SharePoint
                 return;
             }
 
-            string relativeUrl = $"{listTitle}/{folderName}";
-
+            string relativeUrl = $"/{listTitle}/{folderName}";
 
             HttpRequestMessage endpointRequest = new HttpRequestMessage
             {
@@ -318,7 +331,9 @@ namespace Gov.Jag.Interfaces.SharePoint
                     { "Accept", "application/json" }
                 }
             };
-            
+
+            //string jsonString = "{ '__metadata': { 'type': 'SP.Folder' }, 'ServerRelativeUrl': '" + relativeUrl + "'}";
+
             StringContent strContent = new StringContent("", Encoding.UTF8);
             strContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json;odata=verbose");
 
@@ -349,7 +364,7 @@ namespace Gov.Jag.Interfaces.SharePoint
                 string jsonString = await response.Content.ReadAsStringAsync();
             }
 
-            
+
         }
         /// <summary>
         /// Create Folder
@@ -367,7 +382,7 @@ namespace Gov.Jag.Interfaces.SharePoint
             HttpRequestMessage endpointRequest =
                 new HttpRequestMessage(HttpMethod.Post, ApiEndpoint + "web/Lists");
 
-            if(documentTemplateUrlTitle == null)
+            if (documentTemplateUrlTitle == null)
             {
                 documentTemplateUrlTitle = listTitle;
             }
@@ -403,7 +418,7 @@ namespace Gov.Jag.Interfaces.SharePoint
                 jsonString = await response.Content.ReadAsStringAsync();
                 var ob = Newtonsoft.Json.JsonConvert.DeserializeObject<DocumentLibraryResponse>(jsonString);
 
-                if(listTitle != documentTemplateUrlTitle)
+                if (listTitle != documentTemplateUrlTitle)
                 {
                     // update list title
                     endpointRequest = new HttpRequestMessage(HttpMethod.Post, $"{ApiEndpoint}web/lists(guid'{ob.d.Id}')");
@@ -485,7 +500,9 @@ namespace Gov.Jag.Interfaces.SharePoint
         private object CreateNewDocumentLibraryRequest(string listName)
         {
             var type = new { type = "SP.List" };
-            var request = new { __metadata = type,
+            var request = new
+            {
+                __metadata = type,
                 BaseTemplate = 101,
                 Title = listName
             };
@@ -503,17 +520,22 @@ namespace Gov.Jag.Interfaces.SharePoint
 
             bool result = false;
             // Delete is very similar to a GET.
-            string serverRelativeUrl = "";
+            string serverRelativeUrl = "/";
             if (!string.IsNullOrEmpty(WebName))
             {
                 serverRelativeUrl += $"{WebName}/";
             }
 
-            serverRelativeUrl += Uri.EscapeUriString(listTitle) + "/" + Uri.EscapeUriString(folderName);
+            serverRelativeUrl += $"{listTitle}/{folderName}";
 
-            HttpRequestMessage endpointRequest =
-    new HttpRequestMessage(HttpMethod.Post, ApiEndpoint + "web/getFolderByServerRelativeUrl('" + EscapeApostrophe(serverRelativeUrl) + "')");
-
+            HttpRequestMessage endpointRequest = new HttpRequestMessage
+            {
+                Method = HttpMethod.Delete,
+                RequestUri = new Uri(ApiEndpoint + "web/getFolderByServerRelativeUrl('" + EscapeApostrophe(serverRelativeUrl) + "')"),
+                Headers = {
+                    { "Accept", "application/json" }
+                }
+            };
 
             // We want to delete this folder.
             endpointRequest.Headers.Add("IF-MATCH", "*");
@@ -522,7 +544,7 @@ namespace Gov.Jag.Interfaces.SharePoint
             // make the request.
             var response = await _Client.SendAsync(endpointRequest);
 
-            if (response.StatusCode == HttpStatusCode.OK)
+            if (response.StatusCode == HttpStatusCode.NoContent)
             {
                 result = true;
             }
@@ -568,23 +590,25 @@ namespace Gov.Jag.Interfaces.SharePoint
             }
 
             Object result = null;
-            string serverRelativeUrl = "";
+            string serverRelativeUrl = "/";
             if (!string.IsNullOrEmpty(WebName))
             {
                 serverRelativeUrl += $"{WebName}/";
             }
 
-            serverRelativeUrl += Uri.EscapeUriString(listTitle) + "/" + Uri.EscapeUriString(folderName);
+            serverRelativeUrl += $"{listTitle}/{folderName}";
 
-            HttpRequestMessage endpointRequest = new HttpRequestMessage
+
+            HttpRequestMessage endpointRequest = new HttpRequestMessage()
             {
                 Method = HttpMethod.Get,
                 RequestUri = new Uri(ApiEndpoint + "web/getFolderByServerRelativeUrl('" + EscapeApostrophe(serverRelativeUrl) + "')"),
                 Headers = {
                     { "Accept", "application/json" }
                 }
-            };           
-                        
+            };
+
+
             // make the request.
             var response = await _Client.SendAsync(endpointRequest);
             string jsonString = await response.Content.ReadAsStringAsync();
@@ -613,12 +637,12 @@ namespace Gov.Jag.Interfaces.SharePoint
             HttpRequestMessage endpointRequest = new HttpRequestMessage
             {
                 Method = HttpMethod.Get,
-                RequestUri = new Uri (ApiEndpoint + query),
+                RequestUri = new Uri(ApiEndpoint + query),
                 Headers = {
                     { "Accept", "application/json" }
                 }
             };
-            
+
             // make the request.
             var response = await _Client.SendAsync(endpointRequest);
             string jsonString = await response.Content.ReadAsStringAsync();
@@ -632,17 +656,21 @@ namespace Gov.Jag.Interfaces.SharePoint
             return result;
         }
 
-     
+        public async Task AddFile(String folderName, String fileName, Stream fileData, string contentType)
+        {
+            await this.AddFile(DefaultDocumentListTitle, folderName, fileName, fileData, contentType);
+        }
+
+
+
         public async Task AddFile(String documentLibrary, String folderName, String fileName, Stream fileData, string contentType)
         {
-            if (!string.IsNullOrEmpty(folderName))
+
+            bool folderExists = await this.FolderExists(documentLibrary, folderName);
+            if (!folderExists)
             {
-                bool folderExists = await this.FolderExists(documentLibrary, folderName);
-                if (!folderExists)
-                {
-                    await this.CreateFolder(documentLibrary, folderName);
-                }
-            }                
+                await this.CreateFolder(documentLibrary, folderName);
+            }
 
             // now add the file to the folder.
 
@@ -658,13 +686,8 @@ namespace Gov.Jag.Interfaces.SharePoint
                 serverRelativeUrl += $"{WebName}/";
             }
 
-            serverRelativeUrl += Uri.EscapeUriString(listTitle);
+            serverRelativeUrl += Uri.EscapeUriString(listTitle) + "/" + Uri.EscapeUriString(folderName);
 
-            if (!string.IsNullOrEmpty(folderName))
-            {
-                serverRelativeUrl += "/" + Uri.EscapeUriString(folderName);
-            }
-            
             return serverRelativeUrl;
         }
 
@@ -684,20 +707,20 @@ namespace Gov.Jag.Interfaces.SharePoint
                 return false;
             }
             bool result = false;
-            
-            
+
+            // Delete is very similar to a GET.
             string serverRelativeUrl = GetServerRelativeURL(listTitle, folderName);
 
             HttpRequestMessage endpointRequest = new HttpRequestMessage
             {
                 Method = HttpMethod.Post,
                 RequestUri = new Uri(ApiEndpoint + "web/getFolderByServerRelativeUrl('" + EscapeApostrophe(serverRelativeUrl) + "')/Files/add(url='"
-    + EscapeApostrophe(name) + "',overwrite=true)"),
+   + EscapeApostrophe(name) + "',overwrite=true)"),
                 Headers = {
                     { "Accept", "application/json" }
                 }
             };
-            
+
             // convert the stream into a byte array.
             MemoryStream ms = new MemoryStream();
             fileData.CopyTo(ms);
@@ -766,8 +789,15 @@ namespace Gov.Jag.Interfaces.SharePoint
 
             string result = null;
 
-            HttpRequestMessage endpointRequest = new HttpRequestMessage(HttpMethod.Post, ApiEndpoint + "contextinfo");
-            
+            HttpRequestMessage endpointRequest = new HttpRequestMessage()
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri(ApiEndpoint + "contextinfo"),
+                Headers = {
+                    { "Accept", "application/json;odata=verbose" }
+                }
+            };
+
             // make the request.
             var response = await client.SendAsync(endpointRequest);
             string jsonString = await response.Content.ReadAsStringAsync();
@@ -789,7 +819,7 @@ namespace Gov.Jag.Interfaces.SharePoint
                         result = digests[0].InnerText;
                     }
                 }
-                
+
             }
 
             return result;
@@ -810,7 +840,7 @@ namespace Gov.Jag.Interfaces.SharePoint
                 serverRelativeUrl += $"{WebName}/";
             }
 
-            serverRelativeUrl += Uri.EscapeUriString(listTitle) + "/" + Uri.EscapeUriString(folderName) + "/" + Uri.EscapeUriString(fileName);
+            serverRelativeUrl += $"/{listTitle}/{folderName}/{fileName}";
 
             result = await DeleteFile(serverRelativeUrl);
 
@@ -822,8 +852,14 @@ namespace Gov.Jag.Interfaces.SharePoint
             bool result = false;
             // Delete is very similar to a GET.
 
-            HttpRequestMessage endpointRequest =
-    new HttpRequestMessage(HttpMethod.Post, ApiEndpoint + "web/GetFileByServerRelativeUrl('" + EscapeApostrophe(serverRelativeUrl) + "')");
+            HttpRequestMessage endpointRequest = new HttpRequestMessage
+            {
+                Method = HttpMethod.Delete,
+                RequestUri = new Uri(ApiEndpoint + "web/GetFileByServerRelativeUrl('" + EscapeApostrophe(serverRelativeUrl) + "')"),
+                Headers = {
+                    { "Accept", "application/json" }
+                }
+            };
 
             // We want to delete this file.
             endpointRequest.Headers.Add("IF-MATCH", "*");
@@ -832,7 +868,7 @@ namespace Gov.Jag.Interfaces.SharePoint
             // make the request.
             var response = await _Client.SendAsync(endpointRequest);
 
-            if (response.StatusCode == HttpStatusCode.OK)
+            if (response.StatusCode == HttpStatusCode.NoContent)
             {
                 result = true;
             }
@@ -897,7 +933,7 @@ namespace Gov.Jag.Interfaces.SharePoint
         }
     }
 
-   class DocumentLibraryResponse
+    class DocumentLibraryResponse
     {
         public DocumentLibraryResponseContent d { get; set; }
     }
