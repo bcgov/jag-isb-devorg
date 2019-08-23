@@ -1,0 +1,443 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "${NAME}-deployment-template",
+    "creationTimestamp": null
+  },
+  "objects": [
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}",
+        "labels": {
+          "template": "${NAME}-deployment"
+        },
+        "annotations": {
+          "description": "Defines how to deploy ${NAME}"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Rolling"
+        },
+        "triggers": [
+          {
+            "type": "ConfigChange"
+          },
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "${NAME}"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "namespace": "${IMAGE_NAMESPACE}",
+                "name": "${SOURCE_IMAGE_NAME}:${TAG_NAME}"
+              }
+            }
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${NAME}"
+        },
+        "template": {
+          "metadata": {
+            "name": "${NAME}",
+            "labels": {
+              "name": "${NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "${NAME}",
+                "image": "${NAME}",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ASPNETCORE_ENVIRONMENT",
+                    "value": "${ASPNETCORE_ENVIRONMENT}"
+                  },				  
+				  {
+                    "name": "ADFS_OAUTH2_URI",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "adfs-oauth2-uri",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+				  {
+                    "name": "DYNAMICS_APP_GROUP_CLIENT_ID",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "dynamics-app-group-client-id",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DYNAMICS_APP_GROUP_RESOURCE",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "dynamics-app-group-resource",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DYNAMICS_APP_GROUP_SECRET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "dynamics-app-group-secret",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DYNAMICS_NATIVE_ODATA_URI",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "dynamics-native-odata-uri",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DYNAMICS_ODATA_URI",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "dynamics-odata-uri",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DYNAMICS_NATIVE_ODATA_URI",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "dynamics-native-odata-uri",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DYNAMICS_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "dynamics-password",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DYNAMICS_USERNAME",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "dynamics-username",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "SHAREPOINT_NATIVE_BASE_URI",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "sharepoint-native-base-uri",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },                  
+                  {
+                    "name": "SHAREPOINT_ODATA_URI",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "sharepoint-odata-uri",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },                  
+                  {
+                    "name": "SHAREPOINT_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "sharepoint-password",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },               
+                  {
+                    "name": "SHAREPOINT_RELYING_PARTY_IDENTIFIER",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "sharepoint-relying-party-identifier",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "SHAREPOINT_STS_TOKEN_URI",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "sharepoint-sts-token-uri",
+                        "name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },				  
+                  {
+                    "name": "SHAREPOINT_USERNAME",
+					"valueFrom": {
+                      "secretKeyRef": {
+                        "key": "sharepoint-username",
+						"name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+				  {
+                    "name": "SPLUNK_COLLECTOR_URL",
+					"valueFrom": {
+                      "secretKeyRef": {
+                        "key": "splunk-collector-url",
+						"name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },				  
+				  {
+                    "name": "SPLUNK_COLLECTOR_URL",
+					"valueFrom": {
+                      "secretKeyRef": {
+                        "key": "splunk-collector-url",
+						"name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  },
+                  {
+                    "name": "SPLUNK_COLLECTOR_URL",
+					"valueFrom": {
+                      "secretKeyRef": {
+                        "key": "splunk-collector-url",
+						"name": "${SECRET_RESOURCE_NAME}"
+                      }
+                    }
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "${CPU_LIMIT}",
+                    "memory": "${MEMORY_LIMIT}"
+                  },
+                  "requests": {
+                    "cpu": "${CPU_REQUEST}",
+                    "memory": "${MEMORY_REQUEST}"
+                  }
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/hc/ready",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 10,
+                  "timeoutSeconds": 1,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
+                },
+                "liveinessProbe": {
+                  "httpGet": {
+                    "path": "/hc/live",
+                    "port": 8080,
+                    "scheme": "HTTP"
+                  },
+                  "initialDelaySeconds": 10,
+                  "timeoutSeconds": 1,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}",
+        "labels": {
+          "template": "${NAME}-deployment"
+        },
+        "annotations": {
+          "description": "Exposes and load balances the application pods."
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "8080-tcp",
+            "protocol": "TCP",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "${NAME}"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Route",
+      "metadata": {
+        "labels": {
+          "app": "${NAME}"
+        },
+        "name": "${NAME}"
+      },
+      "spec": {
+        "host": "${APPLICATION_DOMAIN}",
+        "port": {
+          "targetPort": "8080-tcp"
+        },
+        "tls": {
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "edge"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "${NAME}",
+          "weight": 100
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Route",
+      "metadata": {
+        "name": "${NAME}-siteminder-route",
+        "labels": {
+          "app": "${NAME}-siteminder-route"
+        }
+      },
+      "spec": {
+        "host": "${SITEMINDER_APPLICATION_DOMAIN}",
+        "port": {
+          "targetPort": "8080-tcp"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "${NAME}",
+          "weight": 100
+        }
+      }
+    }    
+  ],
+  "parameters": [
+    {
+      "name": "NAME",
+      "displayName": "Name",
+      "description": "The name assigned to all of the resources defined in this template.",
+      "required": true,
+      "value": "portal"
+    },
+    {
+      "name": "SOURCE_IMAGE_NAME",
+      "displayName": "Source Image Name",
+      "description": "The name of the image to use for this resource.",
+      "required": true,
+      "value": "portal"
+    },
+    {
+      "name": "IMAGE_NAMESPACE",
+      "displayName": "Image Namespace",
+      "description": "The namespace of the OpenShift project containing the imagestream for the application.",
+      "required": true,
+      "value": "jag-isb-devorg-tools"
+    },
+    {
+      "name": "TAG_NAME",
+      "displayName": "Environment TAG name",
+      "description": "The TAG name for this environment, e.g., dev, test, prod",
+      "required": true,
+      "value": "dev"
+    },
+    {
+      "name": "ASPNETCORE_ENVIRONMENT",
+      "displayName": "AspNetCore Environment",
+      "description": "The ASP Net Core deployment environment setting.",
+      "required": true,
+      "value": "Production"
+    },
+    {
+      "name": "CPU_LIMIT",
+      "displayName": "CPU Limit",
+      "description": "Maximum amount of CPU the container can use.",
+      "value": "1"
+    },
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "1Gi"
+    },
+    {
+      "name": "CPU_REQUEST",
+      "displayName": "CPU Request",
+      "description": "Starting amount of CPU the container can use.",
+      "value": "100m"
+    },
+    {
+      "name": "MEMORY_REQUEST",
+      "displayName": "Memory Request",
+      "description": "Starting amount of memory the container can use.",
+      "value": "1Gi"
+    },
+    {
+      "description": "The endpoint used for SiteMinder routed access to the application.",
+      "displayName": "SiteMinder Application Domain",
+      "name": "SITEMINDER_APPLICATION_DOMAIN",
+      "value": "jag-isb-devorg.pathfinder.bcgov"
+    },
+    {
+      "description": "The exposed hostname that will route to the service, e.g., myappname.pathfinder.gov.bc.ca, if left blank a value will be defaulted.",
+      "displayName": "Application Domain",
+      "name": "APPLICATION_DOMAIN",
+      "value": ""
+    },    
+    {
+      "name": "SECRET_RESOURCE_NAME",
+      "displayName": "Secret resource name",
+      "description": "Secret resource name",
+      "required": true,
+      "value": "portal"
+    },    
+    {
+      "name": "KEY_RING_DIRECTORY",
+      "displayName": "Key Ring Directory",
+      "description": "Persistent storage directory for key ring, e.g., /key-ring, if left blank a value will be defaulted.",
+      "required": true,
+      "value": "/key-ring"
+    },
+    {
+      "name": "KEY_RING_STORAGE_NAME",
+      "displayName": "Key Ring Directory Name",
+      "description": "Persistent storage directory name for key ring, e.g., key-ring, if left blank a value will be defaulted.",
+      "required": true,
+      "value": "key-ring"
+    }
+  ]
+}

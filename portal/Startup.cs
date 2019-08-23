@@ -1,12 +1,19 @@
 ﻿using Gov.Jag.Interfaces.SharePoint;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Newtonsoft.Json;
+using NWebsec.AspNetCore.Mvc;
+using NWebsec.AspNetCore.Mvc.Csp;
+using Serilog;
+using System.Linq;
+using System.Net.Mime;
 
 namespace portal
 {
@@ -31,9 +38,23 @@ namespace portal
 
             // add SharePoint.
 
-            services.AddTransient(_ => new FileManager(Configuration));
+            services.AddTransient(_ => new SharePointFileManager(Configuration));
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            // various security options
+            services.AddMvc(opts =>
+            {
+                opts.Filters.Add(typeof(NoCacheHttpHeadersAttribute));
+                opts.Filters.Add(new XRobotsTagAttribute() { NoIndex = true, NoFollow = true });
+                opts.Filters.Add(typeof(XContentTypeOptionsAttribute));
+                opts.Filters.Add(typeof(XDownloadOptionsAttribute));
+                opts.Filters.Add(typeof(XFrameOptionsAttribute));
+                opts.Filters.Add(typeof(XXssProtectionAttribute));
+                //CSPReportOnly
+                opts.Filters.Add(typeof(CspReportOnlyAttribute));
+                opts.Filters.Add(new CspScriptSrcReportOnlyAttribute { None = true });
+            }
+            
+            ).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
             // allow for large files to be uploaded
             services.Configure<FormOptions>(options =>
@@ -41,6 +62,9 @@ namespace portal
                 options.MultipartBodyLengthLimit = 1073741824; // 1 GB
             });
 
+            // health checks
+            services.AddHealthChecks()
+                .AddCheck("portal", () => HealthCheckResult.Healthy());                
 
         }
 
@@ -55,8 +79,40 @@ namespace portal
             {
                 app.UseExceptionHandler("/Home/Error");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-                app.UseHsts();
+                app.UseHsts(); // Strict-Transport-Security
+                app.UseCors();
             }
+
+
+            var healthCheckOptions = new HealthCheckOptions
+            {
+                ResponseWriter = async (c, r) =>
+                {
+                    c.Response.ContentType = MediaTypeNames.Application.Json;
+                    var result = JsonConvert.SerializeObject(
+                       new
+                       {
+                           checks = r.Entries.Select(e =>
+                      new {
+                          description = e.Key,
+                          status = e.Value.Status.ToString(),
+                          responseTime = e.Value.Duration.TotalMilliseconds
+                      }),
+                           totalResponseTime = r.TotalDuration.TotalMilliseconds
+                       });
+                    await c.Response.WriteAsync(result);
+                }
+            };
+
+            // Readiness check
+            app.UseHealthChecks("/hc/ready", healthCheckOptions);
+
+            // Liveness check
+            app.UseHealthChecks("/hc/live", new HealthCheckOptions
+            {
+                // Exclude all checks and return a 200-Ok.
+                Predicate = (_) => false
+            });
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
@@ -68,6 +124,22 @@ namespace portal
                     name: "default",
                     template: "{controller=Home}/{action=Index}/{id?}");
             });
+
+            // Splunk Setup
+            var logConfig = new LoggerConfiguration()
+                    .Enrich.FromLogContext()
+                    .WriteTo.Console();
+
+            // enable Splunk logger using Serilog
+            if (!string.IsNullOrEmpty(Configuration["SPLUNK_COLLECTOR_URL"]) &&
+                !string.IsNullOrEmpty(Configuration["SPLUNK_TOKEN"])
+                )
+            {
+                logConfig.WriteTo.EventCollector(Configuration["SPLUNK_COLLECTOR_URL"],
+                        Configuration["SPLUNK_TOKEN"]);
+            }
+
+            Log.Logger = logConfig.CreateLogger();
         }
     }
 }

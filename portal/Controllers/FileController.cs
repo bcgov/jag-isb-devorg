@@ -24,9 +24,9 @@ namespace portal.Controllers
         private readonly IConfiguration Configuration;
         private readonly ILogger _logger;
         private readonly ILoggerFactory _loggerFactory;
-        private readonly FileManager _sharePointFileManager;
+        private readonly SharePointFileManager _sharePointFileManager;
 
-        public FileController(IConfiguration configuration, ILoggerFactory loggerFactory, FileManager fileManager)
+        public FileController(IConfiguration configuration, ILoggerFactory loggerFactory, SharePointFileManager fileManager)
         {
             Configuration = configuration;
             _loggerFactory = loggerFactory;
