@@ -49,6 +49,8 @@ Configure the following secrets in your development or deployment environment:
 | SHAREPOINT_RELYING_PARTY_IDENTIFIER | URN for the relying party.  Matches that used for interactive login. |
 | SHAREPOINT_USERNAME | Username for the Service Account that will be used to access SharePoint.  In most cases this will be the same as that used for Dynamics. |
 | SHAREPOINT_PASSWORD | Password for the Service Account that will be used to access SharePoint. |
+| SPLUNK_COLLECTOR_URL | Base URI for Splunk - hostname or a full URI if a reverse proxy is used.  Do not add the endpoint of the HTTP collector, it will be appended by Serilog. |
+| SPLUNK_TOKEN | The Splunk token, as defined on the Data Inputs, Http Event Collector page of Splunk. |
 
 Sequence Diagrams
 ------------------
