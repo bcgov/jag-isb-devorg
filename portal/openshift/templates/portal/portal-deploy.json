@@ -211,21 +211,12 @@
 						"name": "${SECRET_RESOURCE_NAME}"
                       }
                     }
-                  },				  
-				  {
-                    "name": "SPLUNK_COLLECTOR_URL",
-					"valueFrom": {
-                      "secretKeyRef": {
-                        "key": "splunk-collector-url",
-						"name": "${SECRET_RESOURCE_NAME}"
-                      }
-                    }
-                  },
+                  },				  				  
                   {
-                    "name": "SPLUNK_COLLECTOR_URL",
+                    "name": "SPLUNK_TOKEN",
 					"valueFrom": {
                       "secretKeyRef": {
-                        "key": "splunk-collector-url",
+                        "key": "splunk-token",
 						"name": "${SECRET_RESOURCE_NAME}"
                       }
                     }
